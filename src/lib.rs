@@ -1,11 +1,12 @@
 mod utils;
+mod backend;
 
 use wasm_bindgen::prelude::*;
 use web_sys::{Document, Element};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use web_sys::{Request, RequestInit, RequestMode, Response, Window};
 use feeder_types::*;
 
 
@@ -29,13 +30,13 @@ pub async fn start() -> JsResult<()> {
     let navbar = make_navbar(&document)?;
     body.append_child(&navbar)?;
 
-    let content = make_content(&document)?;
+    let content = make_content(&document, &window).await?;
     body.append_child(&content)?;
 
     Ok(())
 }
 
-fn make_content(doc: &Document) -> JsResult<Element> {
+async fn make_content(doc: &Document, window: &Window) -> JsResult<Element> {
     let container = doc.create_element("div")?;
     class(&container, "container mx-auto")?;
 
@@ -44,23 +45,7 @@ fn make_content(doc: &Document) -> JsResult<Element> {
     class(&heading, "text-4xl my-10 mx-5 font-bold")?;
     container.append_child(&heading)?;
 
-    let entries = vec![Entry {
-        id: "abcedf".to_owned(),
-        title: "Trojan Source Bug Threatens the Security of All Code".to_owned(),
-        link: "https://krebsonsecurity.com/2021/11/trojan-source-bug-threatens-the-security-of-all-code".to_owned(),
-        summary: "Virtually all compilers -- programs that transform human-readable source code into computer-executable machine code -- are vulnerable to an insidious attack in which an adversary can introduce targeted vulnerabilities into any software without being det
-ected, new research released today warns. The vulnerability disclosure was coordinated with multiple organizations, some of whom are now releasing updates to address the security weakness.".to_owned(),
-        source: "Krebs on Security".to_owned(),
-        new: true,
-    },
-    Entry {
-        id: "abcedf".to_owned(),
-        title: "Sicherheitspatch: Bitdefender Endpoint Security als Einstiegspunkt für Angreifer".to_owned(),
-        link: "https://www.heise.de/news/Sicherheitspatch-Bitdefender-Endpoint-Security-als-Einstiegspunkt-fuer-Angreifer-6237552.html?wt_mc=rss.red.security.security.atom.beitrag.beitrag".to_owned(),
-        summary: "Zwei Sicherheitslücken in Endpoint Security Tools und Total Security von Bitdefender gefährden Windows-Computer.".to_owned(),
-        source: "Heise Security".to_owned(),
-        new: false,
-    }];
+    let entries = backend::update(&window).await?;
     let entries_list = make_entry_list(&doc, &entries)?;
 
     container.append_child(&entries_list)?;
